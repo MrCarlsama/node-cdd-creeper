@@ -3,11 +3,12 @@ const chalk = require('chalk');
 
 const {USERNAME, PASSWORD} = require('./cdd.config');
 const {loginHandle, checkCookieHandle} = require('./login');
-
+const log = require('./utils')
 // 初始化
 const initHanlde = async () => {
   if (!USERNAME || !PASSWORD) {
-    console.log(chalk.red('设置USERNAME PASSWORD'));
+    log.error("设置 USERNAME PASSWORD")
+    log.error("in /src/cdd.config.js")
     return;
   }
 
@@ -17,13 +18,27 @@ const initHanlde = async () => {
   });
   const page = await browser.newPage();
 
-  try {
-    const cookies = await checkCookieHandle();
-    console.log(cookies);
-    await page.goto('https://weibo.com/hositiri');
-  } catch (err) {
-    await loginHandle(page);
+  // 登录
+  await loginHandle(page);
+
+  console.log(chalk.green("===完成登陆，准备爬取页面图片==="))
+
+  await page.goto('https://www.weibo.com/hositiri?is_all=1', {
+    timeout: 0,
+    waitUntil: ["load", "domcontentloaded"]
+  });
+  // 等待浏览器加载完毕
+  console.log("跳转完加载完毕")
+
+  console.log(typeof await page.$("div[node-type=feed_list_page]"))
+  while( await page.$("div[node-type=feed_list_page]") === null ) {
+    await page.waitForTimeout(500)
+    await page.mouse.wheel({ deltaY: 200 })
   }
+
+  await page.click("a.page.next");
+  
+
 };
 module.exports = {
   initHanlde,
