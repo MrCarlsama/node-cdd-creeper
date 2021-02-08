@@ -24,6 +24,14 @@ const gotoTargetHomePage = async (page, { url }) => {
 };
 
 /**
+ * @async 跳转到目标页数
+ * @param {*} page
+ * @param {number} target 目标页数
+ * @todo ///待完善///
+ */
+const gotoTargetPages = async (page, target) => {};
+
+/**
  * @async 获取总页码数
  * @param {*} page
  * @return {Promise<number>} 当前总页码数
@@ -118,63 +126,77 @@ const getContent = async page => {
         "div[node-type='feed_list'] div[action-type='feed_list_item']"
       )
     );
-    return lists.map(list => {
-      const id = list.getAttribute("mid");
-      // 时间戳 - 日期 节点
-      const dateDOM = list.querySelectorAll("div.WB_from a")[0];
+    return lists
+      .map(list => {
+        const id = list.getAttribute("mid");
+        // 时间戳 - 日期 节点
+        const dateDOM = list.querySelectorAll("div.WB_from a")[0];
 
-      const timestamp = dateDOM.getAttribute("date");
+        const timestamp = dateDOM.getAttribute("date");
 
-      const date = dateDOM.getAttribute("title");
-      // 用户名 - 内容 节点
-      const contentDOM = list.querySelector(
-        "div[node-type='feed_list_content']"
-      );
+        const date = dateDOM.getAttribute("title");
+        // 用户名 - 内容 节点
+        const contentDOM = list.querySelector(
+          "div[node-type='feed_list_content']"
+        );
 
-      const username = contentDOM.getAttribute("nick-name");
-      const content = contentDOM.querySelector("a").innerText;
+        const username = contentDOM.getAttribute("nick-name");
+        const content = contentDOM.innerText;
 
-      // 媒体（图片或视频） 节点
-      const mediaDOM = list.querySelector(
-        "div[node-type='feed_list_media_prev'] ul.WB_media_a"
-      );
+        // 判断是否为转发微博
+        const isForward =
+          contentDOM.querySelector(
+            "div[node-type='feed_list_forwardContent']"
+          ) !== null;
 
-      let type = "none";
-      let urls = [];
+        // 过滤转发微博
+        if (isForward === null) return null;
 
-      if (mediaDOM) {
-        const mediaChildDOMs = Array.from(mediaDOM.querySelectorAll("li"));
-        const mediaClassName = mediaChildDOMs[0].className;
+        // 媒体（图片或视频） 节点
+        const mediaDOM = list.querySelector(
+          "div[node-type='feed_list_media_prev'] ul.WB_media_a"
+        );
 
-        const isPicDOM = mediaClassName.search("WB_pic") > -1;
-        const isVideoDOM = mediaClassName.search("WB_video") > -1;
+        let type = "none";
+        let urls = [];
 
-        if (isPicDOM) {
-          type = "pictures";
-          urls = mediaChildDOMs.map(mediaChildDOM =>
-            mediaChildDOM.querySelector("img").getAttribute("src")
-          );
-        } else if (isVideoDOM) {
-          type = "video";
-          // @todo 视频标签地址来源不确定，暂不处理。
+        if (mediaDOM) {
+          const mediaChildDOMs = Array.from(mediaDOM.querySelectorAll("li"));
+          const mediaClassName = mediaChildDOMs[0].className;
 
-          // urls = mediaChildDOMs.map(mediaChildDOM =>
-          //   mediaChildDOM.querySelector("video").getAttribute("src")
-          // );
-          urls = [];
+          const isPicDOM = mediaClassName.search("WB_pic") > -1;
+          const isVideoDOM = mediaClassName.search("WB_video") > -1;
+
+          if (isPicDOM) {
+            type = "pictures";
+            urls = mediaChildDOMs.map(mediaChildDOM => {
+              const url = mediaChildDOM
+                .querySelector("img")
+                .getAttribute("src");
+              return replaceURLHandle(url);
+            });
+          } else if (isVideoDOM) {
+            type = "video";
+            // @todo 视频标签地址来源不确定，暂不处理。
+
+            // urls = mediaChildDOMs.map(mediaChildDOM =>
+            //   mediaChildDOM.querySelector("video").getAttribute("src")
+            // );
+            urls = [];
+          }
         }
-      }
 
-      return {
-        id,
-        username,
-        content,
-        timestamp,
-        date,
-        type,
-        urls
-      };
-    });
+        return {
+          id,
+          username,
+          content,
+          timestamp,
+          date,
+          type,
+          urls
+        };
+      })
+      .filter(content => content !== null);
   });
 
   console.log(contents);
@@ -183,16 +205,25 @@ const getContent = async page => {
 
   return Promise.resolve(contents);
 
-  // function repalceHandle(url) {
-  //   const str = `https:${url}`;
-  //   if (str.search("orj360") > -1) {
-  //     return str.replace("orj360", "mw690");
-  //   }
-  //   if (str.search("thumb150") > -1) {
-  //     return str.replace("thumb150", "mw690");
-  //   }
-  //   return str;
-  // }
+  // url weibo 缩略图替换成大图地址
+  function replaceURLHandle(url) {
+    const str = `https:${url}`;
+    if (str.search("orj360") > -1) {
+      return str.replace("orj360", "mw690");
+    }
+    if (str.search("thumb150") > -1) {
+      return str.replace("thumb150", "mw690");
+    }
+    console.log("未匹配规则：", str);
+    return str;
+  }
+
+  // 过滤时间
+  function validateTimeByFilter(timestamp, { mode, targetTimestamp }) {
+    const currentTime = new Date(timestamp);
+    switch (mode) {
+    }
+  }
 };
 
 /**
@@ -211,17 +242,23 @@ const start = async page => {
   const pageCounts = await getTotalPages(page);
 
   // 翻页爬取数据
-  for (let i = 0; i < pageCounts; i++) {
+  for (let i = 0; i < 20; i++) {
     try {
       await getCurrentPages(page);
 
       await getContent(page);
 
-      await page.click("a.page.next");
+      await page.click("a.page.next[bpfilter='page']");
+
+      await page.waitForNavigation({
+        waitUntil: ["load", "domcontentloaded"],
+        timeout: 0
+      });
     } catch (err) {
+      console.log(err);
       fs.createWriteStream(
         `./getContentsErrorLog[${new Date().getTime()}]By${i}.txt`
-      ).write(JSON.stringify(err), "UTF8"); //存储错误信息
+      ).write(err.toString(), "UTF8"); //存储错误信息
     }
   }
 };
