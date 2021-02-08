@@ -17,7 +17,7 @@ const loginHandle = async page => {
 
   // 等待浏览器加载完毕
   await page.waitForNavigation({
-    waitUntil: ["load"],
+    waitUntil: ["load", "domcontentloaded"],
     timeout: 0
   });
 
@@ -139,10 +139,14 @@ const weiboMsgValidateHandle = page => {
     // 点击 发送私信验证
     await page.click("#send_dm_btn");
 
-    await page.waitForNavigation().then(() => {
-      log.success("登录成功");
-      resolve();
-    });
+    await page
+      .waitForNavigation({
+        timeout: 0
+      })
+      .then(() => {
+        log.success("登录成功");
+        resolve();
+      });
   });
 };
 

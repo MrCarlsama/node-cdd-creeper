@@ -1,15 +1,14 @@
 const puppeteer = require("puppeteer");
-const chalk = require("chalk");
 
 const { USERNAME, PASSWORD } = require("./cdd.config");
-const { loginHandle, checkCookieHandle } = require("./login");
+const { loginHandle } = require("./login");
 const { start } = require("./creeper");
 
 const log = require("./utils");
 // 初始化
 const initHanlde = async () => {
   if (!USERNAME || !PASSWORD) {
-    log.error("设置 USERNAME PASSWORD");
+    log.error("使用前请设置cdd.config.js中账号信息");
     log.error("in /src/cdd.config.js");
     return;
   }

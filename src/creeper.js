@@ -177,6 +177,8 @@ const getContent = async page => {
     });
   });
 
+  console.log(contents);
+
   log.info(`当前博文数量：${contents.length}`);
 
   return Promise.resolve(contents);
@@ -218,7 +220,7 @@ const start = async page => {
       await page.click("a.page.next");
     } catch (err) {
       fs.createWriteStream(
-        `./getContentsErrorLog[${new Date().getTime()}]By${id}.txt`
+        `./getContentsErrorLog[${new Date().getTime()}]By${i}.txt`
       ).write(JSON.stringify(err), "UTF8"); //存储错误信息
     }
   }
