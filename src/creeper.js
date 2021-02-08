@@ -1,3 +1,5 @@
+const fs = require("fs");
+const { TARGET_URL } = require("./cdd.config");
 const log = require("./utils");
 
 /**
@@ -9,11 +11,8 @@ const log = require("./utils");
  * }
  */
 const gotoTargetHomePage = async (page, { url }) => {
-  if (!url || !page) return Promise.reject();
-
   log.info(`正在前往 URL：${url}`);
 
-  // 'https://www.weibo.com/hositiri?is_all=1'
   await page.goto(url, {
     timeout: 0,
     waitUntil: ["load", "domcontentloaded"]
@@ -26,14 +25,20 @@ const gotoTargetHomePage = async (page, { url }) => {
 
 /**
  * @async 获取总页码数
- * @todo ///施工中///
  * @param {*} page
+ * @return {Promise<number>} 当前总页码数
  */
 const getTotalPages = async page => {
   log.info(`正在获取当前博主总页数`);
 
+  // 滚动查找 -- 下一页按钮
+  await scrollToFindHanlde(page, {
+    el: "div[node-type=feed_list_page]"
+  });
+
   const totals = await page.evaluate(() => {
     // "第 N 页"
+    // @todo 直接取值可能存在误差，暂时先这样处理，后续以 dom节点数量为准
     const lastDOMText = document.querySelector(
       "div[node-type=feed_list_page] div[action-type='feed_list_page_morelist'] ul li a"
     ).innerText;
@@ -49,11 +54,16 @@ const getTotalPages = async page => {
 
 /**
  * @async 获取当前页码
- * @todo ///施工中///
  * @param {*} page
+ * @return {Promise<number>} 当前页数字
  */
 const getCurrentPages = async page => {
   log.info(`正在获取当前页`);
+
+  // 滚动查找 -- 下一页按钮
+  await scrollToFindHanlde(page, {
+    el: "div[node-type=feed_list_page]"
+  });
 
   const currentPage = await page.evaluate(() => {
     const currentDOMText = document.querySelector(
@@ -70,7 +80,6 @@ const getCurrentPages = async page => {
 
 /**
  * @async 将当前主页滚动查找指定元素
- * @todo ///施工中///
  * @param {*} page
  * @param {Object} options
  * {
@@ -81,6 +90,8 @@ const scrollToFindHanlde = async (
   page,
   { el } = { el: "div[node-type=feed_list_page]" }
 ) => {
+  if (!page) return Promise.reject();
+
   log.info(`正在滚动当前页面`);
 
   while ((await page.$(el)) === null) {
@@ -107,7 +118,6 @@ const getContent = async page => {
         "div[node-type='feed_list'] div[action-type='feed_list_item']"
       )
     );
-    console.log("lits, typeof ", typeof lists);
     return lists.map(list => {
       const id = list.getAttribute("mid");
       // 时间戳 - 日期 节点
@@ -146,6 +156,8 @@ const getContent = async page => {
           );
         } else if (isVideoDOM) {
           type = "video";
+          // @todo 视频标签地址来源不确定，暂不处理。
+
           // urls = mediaChildDOMs.map(mediaChildDOM =>
           //   mediaChildDOM.querySelector("video").getAttribute("src")
           // );
@@ -165,21 +177,20 @@ const getContent = async page => {
     });
   });
 
-  // console.log(contents);
   log.info(`当前博文数量：${contents.length}`);
 
   return Promise.resolve(contents);
 
-  function repalceHandle(url) {
-    const str = `https:${url}`;
-    if (str.search("orj360") > -1) {
-      return str.replace("orj360", "mw690");
-    }
-    if (str.search("thumb150") > -1) {
-      return str.replace("thumb150", "mw690");
-    }
-    return str;
-  }
+  // function repalceHandle(url) {
+  //   const str = `https:${url}`;
+  //   if (str.search("orj360") > -1) {
+  //     return str.replace("orj360", "mw690");
+  //   }
+  //   if (str.search("thumb150") > -1) {
+  //     return str.replace("thumb150", "mw690");
+  //   }
+  //   return str;
+  // }
 };
 
 /**
@@ -187,33 +198,30 @@ const getContent = async page => {
  * @param {*} page
  */
 const start = async page => {
+  if (!page) return Promise.reject();
+
   // 跳转网页
   await gotoTargetHomePage(page, {
-    url: "https://www.weibo.com/hositiri?is_all=1"
+    url: TARGET_URL
   });
 
-  for (let i = 0; i < 2; i++) {
-    console.log("()", i);
-    // 滚动查找 -- 下一页按钮
-    await scrollToFindHanlde(page, {
-      el: "div[node-type=feed_list_page]"
-    });
-    await getCurrentPages(page);
+  // 获取总页码
+  const pageCounts = await getTotalPages(page);
 
-    await getContent(page);
+  // 翻页爬取数据
+  for (let i = 0; i < pageCounts; i++) {
+    try {
+      await getCurrentPages(page);
 
-    await page.click("a.page.next");
+      await getContent(page);
 
-    await page.waitForNavigation({
-      waitUntil: ["load", "domcontentloaded"],
-      timeout: 0
-    });
-    console.log("()", i);
+      await page.click("a.page.next");
+    } catch (err) {
+      fs.createWriteStream(
+        `./getContentsErrorLog[${new Date().getTime()}]By${id}.txt`
+      ).write(JSON.stringify(err), "UTF8"); //存储错误信息
+    }
   }
-  // const pageCounts = await getTotalPages(page);
-
-  // 获取内容
-  // await getContent(page);
 };
 
 module.exports = {

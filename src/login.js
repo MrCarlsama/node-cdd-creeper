@@ -43,6 +43,7 @@ const loginHandle = async page => {
 
   // const loginValidateType = await chooseLoginValidateHanlde(page);
   const loginValidateType = "2";
+  log.info("微博私信验证（短信验证待完善）");
 
   // 等待加载 登陆验证 节点
   await page.waitForSelector("#qrCodeCheckDiv");
@@ -159,10 +160,6 @@ const loginSuccessHandle = async page => {
 
   // 设置cookie到本地
   setCookieHandle(page);
-  // page.waitForNavigation().then(() => {
-  //   // 设置cookie到本地
-  //   setCookieHandle(page);
-  // });
 };
 
 /**
