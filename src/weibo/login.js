@@ -2,7 +2,7 @@ const chalk = require("chalk");
 const readline = require("readline");
 const { createWriteStream, readFile } = require("fs");
 const { USERNAME, PASSWORD } = require("./cdd.config");
-const log = require("./utils");
+const log = require("../utils");
 
 /**
  * @async 开始登录
@@ -10,16 +10,8 @@ const log = require("./utils");
  * @return {void}
  */
 const loginHandle = async page => {
-  log.info("打开微博");
-  await page.goto("https://www.weibo.com", {
-    timeout: 0
-  });
-
-  // 等待浏览器加载完毕
-  await page.waitForNavigation({
-    waitUntil: ["load", "domcontentloaded"],
-    timeout: 0
-  });
+  // 等待加载登录DOM节点
+  await page.waitForSelector("a[node-type=loginBtn]");
 
   // 点击登录
   await page.click("a[node-type=loginBtn]");
@@ -163,7 +155,7 @@ const loginSuccessHandle = async page => {
   });
 
   // 设置cookie到本地
-  setCookieHandle(page);
+  saveCookieHandle(page);
 };
 
 /**
@@ -172,7 +164,7 @@ const loginSuccessHandle = async page => {
  */
 const checkCookieHandle = () => {
   return new Promise((resolve, reject) => {
-    readFile("./cookie.txt", "utf8", (err, data) => {
+    readFile(`${__dirname}/cookie.txt`, "utf8", (err, data) => {
       if (err) {
         log.error("获取本地cookie.txt失败");
         console.log(err);
@@ -190,14 +182,17 @@ const checkCookieHandle = () => {
 };
 
 /**
- * 设置Cookie
+ * 保存Cookie到本地
  * @param {*} page
  * @return {void}
  */
-const setCookieHandle = async page => {
+const saveCookieHandle = async page => {
   log.info("正在录入cookie");
   const cookie = await page.cookies();
-  createWriteStream("./cookie.txt").write(JSON.stringify(cookie), "UTF8"); //存储cookie
+  createWriteStream(`${__dirname}/cookie.txt`).write(
+    JSON.stringify(cookie),
+    "UTF8"
+  ); //存储cookie
   log.info("录入cookie完成");
 };
 
@@ -210,15 +205,15 @@ const getCookieHandle = () => {
     const isHasCookie = await checkCookieHandle();
 
     if (isHasCookie) {
-      readFile("./cookie.txt", "utf8", (err, data) => {
+      readFile(`${__dirname}/cookie.txt`, "utf8", (err, data) => {
         if (err) {
           reject("获取本地cookie.txt失败" + err);
         } else {
           const cookies = JSON.parse(data);
-          const result = cookies
-            .map(cookie => `${cookie.name}=${cookie.name};`)
-            .join("");
-          resolve(result);
+          // const result = cookies
+          //   .map(cookie => `${cookie.name}=${cookie.name};`)
+          //   .join("");
+          resolve(cookies);
         }
       });
     } else {
@@ -226,9 +221,19 @@ const getCookieHandle = () => {
     }
   });
 };
+/**
+ * 给当前页面设置cookie
+ * @param {*} page
+ * @return {Promise<void>}
+ */
+const setCookieHandle = async page => {
+  const cookies = await getCookieHandle();
+  page.setCookie(...cookies);
+  return Promise.resolve();
+};
 
 module.exports = {
   loginHandle,
   checkCookieHandle,
-  getCookieHandle
+  setCookieHandle
 };

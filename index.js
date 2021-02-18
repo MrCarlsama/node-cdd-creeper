@@ -2,7 +2,7 @@ const Axios = require("axios");
 const { createWriteStream, existsSync, mkdirSync, readFile } = require("fs");
 const { join, resolve } = require("path");
 
-const { initHanlde } = require("./src/main");
+const { init } = require("./src/main");
 
 /**
  * @todo 待优化
@@ -52,4 +52,4 @@ async function downloadImages({ url, filePath, uploadPath, name }) {
   return filePath;
 }
 
-initHanlde();
+init();

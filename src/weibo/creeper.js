@@ -1,6 +1,6 @@
 const fs = require("fs");
 const { TARGET_URL } = require("./cdd.config");
-const log = require("./utils");
+const log = require("../utils");
 
 /**
  * @name 跳转到指定个人主页
@@ -52,7 +52,12 @@ const getTotalPages = async page => {
     ).innerText;
     // N
     const nums = lastDOMText.slice(2, lastDOMText.search("页") - 1);
-    return Number(nums);
+
+    const maxLength = document.querySelectorAll(
+      "div[node-type=feed_list_page] div[action-type='feed_list_page_morelist'] ul li"
+    ).length;
+
+    return Number(maxLength);
   });
 
   log.info(`当前博主总页数：${totals}`);
@@ -66,7 +71,7 @@ const getTotalPages = async page => {
  * @return {Promise<number>} 当前页数字
  */
 const getCurrentPages = async page => {
-  log.info(`正在获取当前页`);
+  // log.info(`正在获取当前页`);
 
   // 滚动查找 -- 下一页按钮
   await scrollToFindHanlde(page, {
@@ -121,6 +126,19 @@ const getContent = async page => {
   log.info(`正在获取当前页面博文`);
 
   const contents = await page.evaluate(() => {
+    // url weibo 缩略图替换成大图地址
+    const replaceURLHandle = url => {
+      const str = `https:${url}`;
+      if (str.search("orj360") > -1) {
+        return str.replace("orj360", "mw690");
+      }
+      if (str.search("thumb150") > -1) {
+        return str.replace("thumb150", "mw690");
+      }
+      console.log("未匹配规则：", str);
+      return str;
+    };
+
     const lists = Array.from(
       document.querySelectorAll(
         "div[node-type='feed_list'] div[action-type='feed_list_item']"
@@ -173,6 +191,7 @@ const getContent = async page => {
               const url = mediaChildDOM
                 .querySelector("img")
                 .getAttribute("src");
+
               return replaceURLHandle(url);
             });
           } else if (isVideoDOM) {
@@ -199,24 +218,13 @@ const getContent = async page => {
       .filter(content => content !== null);
   });
 
-  console.log(contents);
+  // console.log(contents);
 
   log.info(`当前博文数量：${contents.length}`);
 
-  return Promise.resolve(contents);
+  await getCurrentPages(page);
 
-  // url weibo 缩略图替换成大图地址
-  function replaceURLHandle(url) {
-    const str = `https:${url}`;
-    if (str.search("orj360") > -1) {
-      return str.replace("orj360", "mw690");
-    }
-    if (str.search("thumb150") > -1) {
-      return str.replace("thumb150", "mw690");
-    }
-    console.log("未匹配规则：", str);
-    return str;
-  }
+  return Promise.resolve(contents);
 
   // 过滤时间
   function validateTimeByFilter(timestamp, { mode, targetTimestamp }) {
@@ -248,6 +256,8 @@ const start = async page => {
 
       await getContent(page);
 
+      await page.waitForSelector("a.page.next[bpfilter='page']");
+
       await page.click("a.page.next[bpfilter='page']");
 
       await page.waitForNavigation({
@@ -257,7 +267,7 @@ const start = async page => {
     } catch (err) {
       console.log(err);
       fs.createWriteStream(
-        `./getContentsErrorLog[${new Date().getTime()}]By${i}.txt`
+        __dirname + `/getContentsErrorLog[${new Date().getTime()}]By${i}.txt`
       ).write(err.toString(), "UTF8"); //存储错误信息
     }
   }
