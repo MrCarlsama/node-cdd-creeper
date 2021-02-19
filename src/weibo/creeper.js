@@ -29,7 +29,28 @@ const gotoTargetHomePage = async (page, { url }) => {
  * @param {number} target 目标页数
  * @todo ///待完善///
  */
-const gotoTargetPages = async (page, target) => {};
+const gotoTargetPages = async (page, target) => {
+  // 滚动查找 -- 分页按钮组
+  await scrollToFindHanlde(page, {
+    el: "div[node-type=feed_list_page]"
+  });
+
+  await page.evaluate(target => {
+    const listPages = document.querySelectorAll(
+      "div[node-type=feed_list_page] div[action-type='feed_list_page_morelist'] ul li a"
+    );
+    const maxLength = listPages.length;
+    console.log(listPages[maxLength - target]);
+    listPages[maxLength - target].click();
+  }, target);
+
+  await page.waitForNavigation({
+    waitUntil: ["load", "domcontentloaded"],
+    timeout: 0
+  });
+
+  return Promise.resolve();
+};
 
 /**
  * @async 获取总页码数
@@ -37,7 +58,7 @@ const gotoTargetPages = async (page, target) => {};
  * @return {Promise<number>} 当前总页码数
  */
 const getTotalPages = async page => {
-  log.info(`正在获取当前博主总页数`);
+  // log.info(`正在获取当前博主总页数`);
 
   // 滚动查找 -- 下一页按钮
   await scrollToFindHanlde(page, {
@@ -47,11 +68,11 @@ const getTotalPages = async page => {
   const totals = await page.evaluate(() => {
     // "第 N 页"
     // @todo 直接取值可能存在误差，暂时先这样处理，后续以 dom节点数量为准
-    const lastDOMText = document.querySelector(
-      "div[node-type=feed_list_page] div[action-type='feed_list_page_morelist'] ul li a"
-    ).innerText;
+    // const lastDOMText = document.querySelector(
+    //   "div[node-type=feed_list_page] div[action-type='feed_list_page_morelist'] ul li a"
+    // ).innerText;
     // N
-    const nums = lastDOMText.slice(2, lastDOMText.search("页") - 1);
+    // const nums = lastDOMText.slice(2, lastDOMText.search("页") - 1);
 
     const maxLength = document.querySelectorAll(
       "div[node-type=feed_list_page] div[action-type='feed_list_page_morelist'] ul li"
@@ -108,8 +129,16 @@ const scrollToFindHanlde = async (
   log.info(`正在滚动当前页面`);
 
   while ((await page.$(el)) === null) {
-    await page.waitForTimeout(120);
-    await page.mouse.wheel({ deltaY: 200 });
+    await page.waitForTimeout(60);
+    await page.mouse.wheel({ deltaY: 150 });
+
+    //
+    if ((await page.$("div[node-type=lazyload] a")) !== null) {
+      await page.evaluate(() => {
+        console.log(document.querySelector("div[node-type=lazyload] a"));
+        document.querySelector("div[node-type=lazyload] a").click();
+      });
+    }
   }
 
   log.info(`滚动查找目标{${el}}完毕`);
@@ -123,7 +152,12 @@ const scrollToFindHanlde = async (
  *
  */
 const getContent = async page => {
-  log.info(`正在获取当前页面博文`);
+  // log.info(`正在获取当前页面博文`);
+
+  // 滚动查找 -- 分页按钮组
+  await scrollToFindHanlde(page, {
+    el: "div[node-type=feed_list_page]"
+  });
 
   const contents = await page.evaluate(() => {
     // url weibo 缩略图替换成大图地址
@@ -252,18 +286,15 @@ const start = async page => {
   // 翻页爬取数据
   for (let i = 0; i < 20; i++) {
     try {
-      await getCurrentPages(page);
+      // await getCurrentPages(page);
 
       await getContent(page);
 
-      await page.waitForSelector("a.page.next[bpfilter='page']");
+      // await page.waitForSelector("a.page.next[bpfilter='page']");
 
-      await page.click("a.page.next[bpfilter='page']");
+      // await page.click("a.page.next[bpfilter='page']");
 
-      await page.waitForNavigation({
-        waitUntil: ["load", "domcontentloaded"],
-        timeout: 0
-      });
+      await gotoTargetPages(page, i + 2);
     } catch (err) {
       console.log(err);
       fs.createWriteStream(
