@@ -1,13 +1,15 @@
-const puppeteer = require("puppeteer");
+const puppeteer = require('puppeteer');
 
-const { weiboHandle } = require("./weibo");
+const {weiboHandle} = require('./weibo');
 
-const log = require("./utils");
+const log = require('./utils');
 // 初始化
 const init = async () => {
   const browser = await puppeteer.launch({
     headless: false,
-    slowMo: 100
+    slowMo: 100,
+    args: ['--no-sandbox'],
+    dumpio: false,
   });
 
   const works = [weiboHandle(browser)];
@@ -15,5 +17,5 @@ const init = async () => {
   Promise.all(works);
 };
 module.exports = {
-  init
+  init,
 };
