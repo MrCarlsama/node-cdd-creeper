@@ -40,7 +40,6 @@ const gotoTargetPages = async (page, target) => {
       "div[node-type=feed_list_page] div[action-type='feed_list_page_morelist'] ul li a"
     );
     const maxLength = listPages.length;
-    console.log(listPages[maxLength - target]);
     listPages[maxLength - target].click();
   }, target);
 
