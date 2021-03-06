@@ -4,7 +4,7 @@ const {start} = require('./creeper');
 
 const log = require('../utils');
 // 初始化
-const initHanlde = async (browser) => {
+const init = async (browser, type = 'app') => {
   if (!USERNAME || !PASSWORD) {
     log.error('微博使用前请设置cdd.config.js中账号信息');
     log.error('in /src/weibo/cdd.config.js');
@@ -16,14 +16,14 @@ const initHanlde = async (browser) => {
 
   log.info('打开微博');
   await page.goto('https://www.weibo.com', {
+    waitUntil: ['load', 'domcontentloaded'],
     timeout: 0,
   });
 
   // 等待浏览器加载完毕
-  await page.waitForNavigation({
-    waitUntil: ['load', 'domcontentloaded'],
-    timeout: 0,
-  });
+  // await page.waitForNavigation({
+  //   timeout: 0,
+  // });
 
   const isHasCookie = await checkCookieHandle();
 
@@ -34,16 +34,19 @@ const initHanlde = async (browser) => {
     await loginHandle(page);
   }
 
+  switch (type) {
+    case 'http':
+      return page;
+    case 'app':
+      //开始爬他妈的！
+      await start(page);
+      return;
+  }
+
   // 开始爬他妈的！
-  await start(page);
+  // await start(page);
 };
 
-/**
- *
- */
-
-const getTargetUserAllContents = (page) => {};
-
 module.exports = {
-  weiboHandle: initHanlde,
+  init,
 };

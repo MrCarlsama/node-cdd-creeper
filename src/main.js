@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
 
-const {weiboHandle} = require('./weibo');
+const {init: initWeiboHanlde} = require('./weibo');
 
 const log = require('./utils');
 // 初始化
@@ -12,7 +12,7 @@ const init = async () => {
     dumpio: false,
   });
 
-  const works = [weiboHandle(browser)];
+  const works = [initWeiboHanlde(browser)];
 
   Promise.all(works);
 };

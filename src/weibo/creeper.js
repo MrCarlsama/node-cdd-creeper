@@ -17,8 +17,13 @@ const gotoTargetHomePage = async (page, {url}) => {
     timeout: 0,
     waitUntil: ['load', 'domcontentloaded'],
   });
+  // 等待一些验证跳转
+  await page.waitForNavigation({
+    timeout: 0,
+    waitUntil: ['load', 'domcontentloaded'],
+  });
 
-  log.info(`加载完毕 URL：${url}`);
+  log.info(`加载完毕 URL：${page.url()}`);
 
   return Promise.resolve();
 };
@@ -139,9 +144,6 @@ const scrollToFindHanlde = async (
       });
     }
   }
-
-  log.info(`滚动查找目标{${el}}完毕`);
-
   return Promise.resolve();
 };
 
@@ -251,11 +253,7 @@ const getContents = async (page) => {
       .filter((content) => content !== null);
   });
 
-  // console.log(contents);
-
   log.info(`当前博文数量：${contents.length}`);
-
-  await getCurrentPages(page);
 
   return Promise.resolve(contents);
 
