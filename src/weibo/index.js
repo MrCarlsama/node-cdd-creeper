@@ -26,8 +26,9 @@ const init = async (browser, type = 'app') => {
   // });
 
   const isHasCookie = await checkCookieHandle();
+  const isNoneHasLoginBtn = page.$("a[node-type='loginBtn']") === null;
 
-  if (isHasCookie) {
+  if (isHasCookie && isNoneHasLoginBtn) {
     await setCookieHandle(page);
   } else {
     // 登录

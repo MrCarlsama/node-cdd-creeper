@@ -5,7 +5,7 @@ const puppeteer = require('puppeteer');
  */
 const getBrowser = async () => {
   const browser = await puppeteer.launch({
-    headless: false,
+    // headless: false,
     slowMo: 40,
     args: ['--no-sandbox'],
     dumpio: false,

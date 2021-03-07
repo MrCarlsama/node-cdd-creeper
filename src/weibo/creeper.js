@@ -17,11 +17,14 @@ const gotoTargetHomePage = async (page, {url}) => {
     timeout: 0,
     waitUntil: ['load', 'domcontentloaded'],
   });
-  // 等待一些验证跳转
-  await page.waitForNavigation({
-    timeout: 0,
-    waitUntil: ['load', 'domcontentloaded'],
-  });
+  console.log(page.url() !== url);
+  // 非指定目标页时， 等待一些验证跳转
+  if (page.url() !== url) {
+    await page.waitForNavigation({
+      timeout: 0,
+      waitUntil: ['load', 'domcontentloaded'],
+    });
+  }
 
   log.info(`加载完毕 URL：${page.url()}`);
 

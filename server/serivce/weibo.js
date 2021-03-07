@@ -5,6 +5,7 @@ const {
   gotoTargetPages,
   getContents,
 } = require('../../src/weibo/creeper');
+const {checkIsNeedLoginHandle} = require('../../src/weibo/login');
 let browser = null;
 
 const getUserAllContents = () => {};
@@ -26,9 +27,20 @@ const getUserContentsByCurrentPages = async (url, {pageIndex}) => {
 
   await gotoTargetPages(page, pageIndex);
 
+  const isCheckLoginResult = await checkIsNeedLoginHandle(page);
+
+  if (isCheckLoginResult) {
+    // 等待一些验证跳转
+    await page.waitForNavigation({
+      timeout: 0,
+      waitUntil: ['load', 'domcontentloaded'],
+    });
+    await gotoTargetPages(page, pageIndex);
+  }
+
   const contents = await getContents(page);
 
-  page.close();
+  // page.close();
 
   return contents;
 };
