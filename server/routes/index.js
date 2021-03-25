@@ -1,3 +1,4 @@
+const { default: axios } = require('axios');
 const Router = require('koa-router');
 const router = Router();
 const weiboSerivce = require('../serivce/weibo');
@@ -17,6 +18,8 @@ router.post('/task/weibo', async (ctx, next) => {
         pageIndex,
       }
     );
+
+    
     ctx.body = curretContents;
   }
 });

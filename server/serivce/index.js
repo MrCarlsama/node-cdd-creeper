@@ -5,7 +5,7 @@ const puppeteer = require('puppeteer');
  */
 const getBrowser = async () => {
   const browser = await puppeteer.launch({
-    // headless: false,
+    headless: false,
     slowMo: 40,
     args: ['--no-sandbox'],
     dumpio: false,
@@ -15,7 +15,7 @@ const getBrowser = async () => {
 
 const getPage = async (browser) => {
   const page = await browser.newPage();
-  await page.setViewport({width: 1920, height: 1200});
+  await page.setViewport({width: 1920, height: 8000});
   return page;
 };
 

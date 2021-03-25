@@ -6,7 +6,7 @@ const log = require('./utils');
 // 初始化
 const init = async () => {
   const browser = await puppeteer.launch({
-    // headless: false,
+    headless: false,
     slowMo: 100,
     args: ['--no-sandbox'],
     dumpio: false,
